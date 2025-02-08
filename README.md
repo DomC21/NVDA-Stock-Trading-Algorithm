@@ -12,3 +12,8 @@ This repository contains a sophisticated trading algorithm specifically designed
 - Risk management system
 - Market regime detection
 - Backtesting framework
+
+## Project Structure
+- `src/`: Source code for the trading algorithm
+- `tests/`: Unit tests and integration tests
+- `docs/`: Documentation and usage guides
