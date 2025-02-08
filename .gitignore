@@ -1,8 +1,0 @@
-__pycache__/
-*.pyc
-.env
-*.log
-venv/
-.pytest_cache/
-*.png
-*.h5
