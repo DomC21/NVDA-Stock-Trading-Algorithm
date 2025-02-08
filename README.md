@@ -26,3 +26,6 @@ This repository contains a sophisticated trading algorithm specifically designed
 1. Clone the repository
 2. Install dependencies: `pip install -r requirements.txt`
 3. Copy config.py.example to config.py and add your API keys
+
+## Contributing
+Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
