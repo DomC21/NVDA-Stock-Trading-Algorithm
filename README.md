@@ -17,3 +17,12 @@ This repository contains a sophisticated trading algorithm specifically designed
 - `src/`: Source code for the trading algorithm
 - `tests/`: Unit tests and integration tests
 - `docs/`: Documentation and usage guides
+
+## Development Setup
+- Python 3.12+
+- pip (Python package manager)
+
+## Installation
+1. Clone the repository
+2. Install dependencies
+3. Copy config.py.example to config.py and add your API keys
