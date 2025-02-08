@@ -27,6 +27,15 @@ This repository contains a sophisticated trading algorithm specifically designed
 2. Install dependencies: `pip install -r requirements.txt`
 3. Copy config.py.example to config.py and add your API keys
 
+## Testing
+Run tests with:
+```bash
+python -m pytest tests/
+```
+
+## Documentation
+Detailed documentation available in the `docs/` directory.
+
 ## Contributing
 Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
 
