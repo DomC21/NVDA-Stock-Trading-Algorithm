@@ -16,3 +16,6 @@ This repository contains a sophisticated trading algorithm specifically designed
 - `src/`: Source code for the trading algorithm
 - `tests/`: Test suite
 - `docs/`: Documentation
+
+## Installation
+pip install -r requirements.txt
