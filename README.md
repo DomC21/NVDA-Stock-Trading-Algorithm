@@ -6,11 +6,11 @@ This repository contains a sophisticated trading algorithm specifically designed
 
 ## Features
 - Multi-source data integration (Polygon.io, Alpha Vantage, Unusual Whales)
-- Advanced technical analysis
+- Advanced technical analysis and signal generation
 - Machine learning-based price prediction
-- Risk management system
+- Risk management system with position sizing
 - Market regime detection
-- Backtesting framework
+- Comprehensive backtesting framework
 
 ## Project Structure
 - `src/`: Source code for the trading algorithm
@@ -18,4 +18,14 @@ This repository contains a sophisticated trading algorithm specifically designed
 - `docs/`: Documentation
 
 ## Installation
+```bash
 pip install -r requirements.txt
+```
+
+## Configuration
+Create a `.env` file with your API keys:
+```
+POLYGON_API_KEY=your_key_here
+ALPHA_VANTAGE_API_KEY=your_key_here
+UNUSUAL_WHALES_API_KEY=your_key_here
+```
