@@ -24,5 +24,5 @@ This repository contains a sophisticated trading algorithm specifically designed
 
 ## Installation
 1. Clone the repository
-2. Install dependencies
+2. Install dependencies: `pip install -r requirements.txt`
 3. Copy config.py.example to config.py and add your API keys
