@@ -5,6 +5,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from .signal_generator import SignalGenerator
 from .market_regime_analyzer import MarketRegimeAnalysis, MarketRegimeAnalyzer
+from .sentiment_analyzer import SentimentAnalyzer
 
 class TestSignalGenerator(unittest.TestCase):
     def setUp(self):
@@ -23,7 +24,8 @@ class TestSignalGenerator(unittest.TestCase):
         
     @patch('src.dark_pool_analyzer.DarkPoolAnalyzer')
     @patch('src.market_regime_analyzer.MarketRegimeAnalyzer')
-    def test_generate_signal(self, mock_market, mock_dark_pool):
+    @patch('src.sentiment_analyzer.SentimentAnalyzer')
+    def test_generate_signal(self, mock_market, mock_dark_pool, mock_sentiment):
         mock_dark_pool_instance = Mock()
         mock_dark_pool_instance.fetch_unusual_whales_data.return_value = {
             'dark_pool': {'trades': []},
@@ -48,6 +50,18 @@ class TestSignalGenerator(unittest.TestCase):
             confidence=0.8
         )
         mock_market.return_value = mock_market_instance
+        
+        mock_sentiment_instance = Mock()
+        mock_sentiment_instance.fetch_news_sentiment.return_value = [
+            Mock(sentiment_score=0.5, relevance_score=0.8, impact_score=0.4)
+        ]
+        mock_sentiment_instance.analyze_sentiment.return_value = {
+            'composite_score': 0.4,
+            'recent_sentiment': 0.5,
+            'sentiment_momentum': 0.3,
+            'confidence': 0.8
+        }
+        mock_sentiment.return_value = mock_sentiment_instance
         
         signal = self.generator.generate_signal(self.sample_data)
         
@@ -84,17 +98,23 @@ class TestSignalGenerator(unittest.TestCase):
             'short': {'volume_confidence': 0.3}
         }
         
-        signal = self.generator._calculate_composite_signal(dark_pool, regime, volume)
+        sentiment = {
+            'composite_score': 0.4,
+            'recent_sentiment': 0.5,
+            'sentiment_momentum': 0.3,
+            'confidence': 0.8
+        }
+        signal = self.generator._calculate_composite_signal(dark_pool, regime, volume, sentiment)
         self.assertTrue(-1 <= signal <= 1)
         
         # Test bearish scenario
         regime.trend_strength = -0.7
-        bearish_signal = self.generator._calculate_composite_signal(dark_pool, regime, volume)
+        bearish_signal = self.generator._calculate_composite_signal(dark_pool, regime, volume, sentiment)
         self.assertLess(bearish_signal, signal)
         
         # Test high volatility adjustment
         regime.volatility_regime = 'high'
-        volatile_signal = self.generator._calculate_composite_signal(dark_pool, regime, volume)
+        volatile_signal = self.generator._calculate_composite_signal(dark_pool, regime, volume, sentiment)
         self.assertNotEqual(signal, volatile_signal)
 
 if __name__ == '__main__':

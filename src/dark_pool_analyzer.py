@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 import requests
@@ -18,7 +18,7 @@ class DarkPoolData:
     block_size: float
 
 class DarkPoolAnalyzer:
-    def __init__(self, polygon_key: str = None, unusual_whales_key: str = None):
+    def __init__(self, polygon_key: Optional[str] = None, unusual_whales_key: Optional[str] = None):
         self.api_key = polygon_key or os.getenv('POLYGON_API_KEY')
         self.unusual_whales_key = unusual_whales_key or os.getenv('UNUSUAL_WHALES_API_KEY')
         
@@ -176,6 +176,7 @@ class DarkPoolAnalyzer:
             analysis['option_flow_signals'].get('signal', 0) * 0.4,
             analysis['greek_exposure'].get('signal', 0) * 0.2
         ]
+        analysis = dict(analysis)  # Create a new mutable dict
         analysis['composite_signal'] = float(sum(signals))
         
         return analysis
