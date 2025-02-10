@@ -12,14 +12,14 @@ class SignalValidation:
 
 class RealityCheck:
     def __init__(self,
-                 min_volume_threshold: float = 100000,
-                 max_spread_threshold: float = 0.03,
-                 min_confidence: float = 0.6,
-                 max_gamma_exposure: float = 0.01,
-                 max_vega_exposure: float = 0.02,
-                 max_theta_decay: float = 0.005,
-                 min_delta_hedge: float = 0.3,
-                 high_block_threshold: float = 1_000_000):
+                 min_volume_threshold: float = 500000,  # Higher for NVDA's typical volume
+                 max_spread_threshold: float = 0.02,    # Tighter spread for NVDA
+                 min_confidence: float = 0.7,          # Higher confidence requirement
+                 max_gamma_exposure: float = 0.15,     # NVDA-specific gamma threshold
+                 max_vega_exposure: float = 0.15,      # Higher vega tolerance for NVDA
+                 max_theta_decay: float = 0.002,       # Stricter theta decay limit
+                 min_delta_hedge: float = 0.4,         # Higher hedge requirement
+                 high_block_threshold: float = 2_000_000):  # NVDA-specific block size
         self.min_volume_threshold = min_volume_threshold
         self.max_spread_threshold = max_spread_threshold
         self.min_confidence = min_confidence
@@ -28,6 +28,11 @@ class RealityCheck:
         self.max_theta_decay = max_theta_decay
         self.min_delta_hedge = min_delta_hedge
         self.high_block_threshold = high_block_threshold
+        
+        # NVDA-specific validation thresholds
+        self.min_option_volume = 10000  # Minimum option volume for valid signal
+        self.max_put_call_ratio = 2.0   # Maximum put/call ratio before warning
+        self.min_dark_pool_size = 100000  # Minimum dark pool trade size to consider
         
     def validate_signal(self,
                        signal: Dict,
@@ -140,19 +145,44 @@ class RealityCheck:
         
         call_volume = recent_flow['call_volume'].sum()
         put_volume = recent_flow['put_volume'].sum()
+        total_volume = call_volume + put_volume
         call_put_ratio = call_volume / put_volume if put_volume > 0 else float('inf')
         
+        if total_volume < self.min_option_volume:
+            return {
+                'valid': False,
+                'reason': f'Insufficient options volume ({total_volume:,})',
+                'context': {
+                    'call_put_ratio': call_put_ratio,
+                    'total_volume': total_volume,
+                    'threshold': self.min_option_volume
+                }
+            }
+            
+        if call_put_ratio > self.max_put_call_ratio or (1/call_put_ratio) > self.max_put_call_ratio:
+            return {
+                'valid': False,
+                'reason': f'Extreme options imbalance ({call_put_ratio:.2f})',
+                'context': {
+                    'call_put_ratio': call_put_ratio,
+                    'total_volume': total_volume,
+                    'threshold': self.max_put_call_ratio
+                }
+            }
+            
         if signal['direction'] == 'buy':
-            aligned = call_put_ratio > 1.5
+            aligned = call_put_ratio > 1.5 and call_volume >= self.min_option_volume
         else:
-            aligned = call_put_ratio < 0.67
+            aligned = call_put_ratio < 0.67 and put_volume >= self.min_option_volume
             
         return {
             'valid': aligned,
             'reason': f'Options flow ({call_put_ratio:.2f}) misaligned with signal',
             'context': {
                 'call_put_ratio': call_put_ratio,
-                'total_volume': call_volume + put_volume
+                'total_volume': total_volume,
+                'call_volume': call_volume,
+                'put_volume': put_volume
             }
         }
         
@@ -175,28 +205,60 @@ class RealityCheck:
         if dark_pool_data.empty:
             return {'valid': True, 'reason': '', 'context': {}}
             
-        major_blocks = dark_pool_data.nlargest(3, 'volume')
+        # Filter out small trades
+        significant_trades = dark_pool_data[dark_pool_data['volume'] >= self.min_dark_pool_size]
+        if significant_trades.empty:
+            return {
+                'valid': True,
+                'reason': 'No significant dark pool activity',
+                'context': {'min_size': self.min_dark_pool_size}
+            }
+            
+        major_blocks = significant_trades.nlargest(3, 'volume')
         block_sum = major_blocks['volume'].sum()
         avg_block_price = (major_blocks['price'] * major_blocks['volume']).sum() / block_sum
         
+        # Calculate buy/sell pressure
+        buy_volume = significant_trades[significant_trades['side'] == 'buy']['volume'].sum()
+        sell_volume = significant_trades[significant_trades['side'] == 'sell']['volume'].sum()
+        total_volume = buy_volume + sell_volume
+        buy_ratio = buy_volume / total_volume if total_volume > 0 else 0.5
+        
         context = {
             'block_sum': block_sum,
-            'avg_block_price': avg_block_price
+            'avg_block_price': avg_block_price,
+            'buy_ratio': buy_ratio,
+            'total_volume': total_volume
         }
         
+        # Check for large blocks against signal direction
         if block_sum > self.high_block_threshold:
-            if signal['direction'] == 'buy' and avg_block_price < dark_pool_data['price'].iloc[-1]:
-                return {
-                    'valid': False,
-                    'reason': f'Large dark pool blocks ({block_sum:,.0f}) below current price',
-                    'context': context
-                }
-            elif signal['direction'] == 'sell' and avg_block_price > dark_pool_data['price'].iloc[-1]:
-                return {
-                    'valid': False,
-                    'reason': f'Large dark pool blocks ({block_sum:,.0f}) above current price',
-                    'context': context
-                }
+            current_price = dark_pool_data['price'].iloc[-1]
+            price_diff_pct = (avg_block_price - current_price) / current_price
+            
+            if signal['direction'] == 'buy':
+                if avg_block_price < current_price and abs(price_diff_pct) > 0.01:
+                    return {
+                        'valid': False,
+                        'reason': f'Large dark pool blocks ({block_sum:,.0f}) {abs(price_diff_pct):.1%} below current price',
+                        'context': context
+                    }
+            elif signal['direction'] == 'sell':
+                if avg_block_price > current_price and abs(price_diff_pct) > 0.01:
+                    return {
+                        'valid': False,
+                        'reason': f'Large dark pool blocks ({block_sum:,.0f}) {abs(price_diff_pct):.1%} above current price',
+                        'context': context
+                    }
+                    
+        # Check for extreme buy/sell imbalance
+        if (signal['direction'] == 'buy' and buy_ratio < 0.3) or \
+           (signal['direction'] == 'sell' and buy_ratio > 0.7):
+            return {
+                'valid': False,
+                'reason': f'Dark pool sentiment ({buy_ratio:.1%} buys) against signal direction',
+                'context': context
+            }
                 
         return {'valid': True, 'reason': '', 'context': context}
         
