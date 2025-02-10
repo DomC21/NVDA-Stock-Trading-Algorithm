@@ -16,6 +16,13 @@ class VolumeAnalyzer:
     def __init__(self, price_data: pd.DataFrame):
         self.data = price_data
         self.volume_profile = None
+        self.symbol = 'NVDA'  # Explicitly set for NVDA analysis
+        
+        # NVDA-specific thresholds based on historical analysis
+        self.min_volume_threshold = 500000  # Higher threshold for NVDA's typical volume
+        self.volume_breakout_threshold = 2000000  # Volume spike detection
+        self.value_area_threshold = 0.75  # Increased from default due to NVDA's liquidity
+        self.support_resistance_strength = 0.15  # Minimum relative volume for S/R levels
         
     def calculate_volume_profile(self, num_bins: int = 50, 
                                value_area_pct: float = 0.70) -> VolumeProfile:
