@@ -4,6 +4,10 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 @dataclass
 class DarkPoolData:
@@ -20,8 +24,7 @@ class DarkPoolAnalyzer:
         
         if not all([self.api_key, self.unusual_whales_key]):
             raise ValueError("Missing required API keys")
-        self.api_key = polygon_key
-        self.unusual_whales_key = unusual_whales_key
+            
         self.base_url = "https://api.polygon.io/v2"
         self.unusual_whales_url = "https://api.unusualwhales.com"
         self.symbol = 'NVDA'
@@ -173,7 +176,7 @@ class DarkPoolAnalyzer:
             analysis['option_flow_signals'].get('signal', 0) * 0.4,
             analysis['greek_exposure'].get('signal', 0) * 0.2
         ]
-        analysis['composite_signal'] = sum(signals)
+        analysis['composite_signal'] = float(sum(signals))
         
         return analysis
         

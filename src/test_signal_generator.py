@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from .signal_generator import SignalGenerator
-from .market_regime_analyzer import MarketRegime
+from .market_regime_analyzer import MarketRegimeAnalysis, MarketRegimeAnalyzer
 
 class TestSignalGenerator(unittest.TestCase):
     def setUp(self):
@@ -39,13 +39,13 @@ class TestSignalGenerator(unittest.TestCase):
         mock_dark_pool.return_value = mock_dark_pool_instance
         
         mock_market_instance = Mock()
-        mock_market_instance.analyze_regime.return_value = MarketRegime(
-            trend='bullish',
-            volatility='normal',
-            momentum=0.6,
-            strength=0.7,
-            support_level=180.0,
-            resistance_level=220.0
+        mock_market_instance.analyze.return_value = MarketRegimeAnalysis(
+            regime='trending',
+            trend_strength=0.7,
+            volatility_regime='normal',
+            momentum_score=0.6,
+            support_resistance=[180.0, 220.0],
+            confidence=0.8
         )
         mock_market.return_value = mock_market_instance
         
@@ -70,13 +70,13 @@ class TestSignalGenerator(unittest.TestCase):
             'greek_exposure': {'signal': 0.2}
         }
         
-        regime = MarketRegime(
-            trend='bullish',
-            volatility='normal',
-            momentum=0.6,
-            strength=0.7,
-            support_level=180.0,
-            resistance_level=220.0
+        regime = MarketRegimeAnalysis(
+            regime='trending',
+            trend_strength=0.7,
+            volatility_regime='normal',
+            momentum_score=0.6,
+            support_resistance=[180.0, 220.0],
+            confidence=0.8
         )
         
         volume = {
@@ -88,12 +88,12 @@ class TestSignalGenerator(unittest.TestCase):
         self.assertTrue(-1 <= signal <= 1)
         
         # Test bearish scenario
-        regime.trend = 'bearish'
+        regime.trend_strength = -0.7
         bearish_signal = self.generator._calculate_composite_signal(dark_pool, regime, volume)
         self.assertLess(bearish_signal, signal)
         
         # Test high volatility adjustment
-        regime.volatility = 'high'
+        regime.volatility_regime = 'high'
         volatile_signal = self.generator._calculate_composite_signal(dark_pool, regime, volume)
         self.assertNotEqual(signal, volatile_signal)
 

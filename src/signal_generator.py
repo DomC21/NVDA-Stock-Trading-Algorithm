@@ -3,7 +3,11 @@ import numpy as np
 from typing import Dict, Optional
 from .dark_pool_analyzer import DarkPoolAnalyzer
 from .volume_analyzer import VolumeAnalyzer
-from .market_regime_analyzer import MarketRegimeAnalyzer
+from .market_regime_analyzer import MarketRegimeAnalyzer, MarketRegimeAnalysis
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class SignalGenerator:
     def __init__(self):
@@ -53,17 +57,17 @@ class SignalGenerator:
             }
         }
         
-    def _calculate_composite_signal(self, dark_pool: Dict, regime: MarketRegime, 
+    def _calculate_composite_signal(self, dark_pool: Dict, regime: MarketRegimeAnalysis, 
                                   volume: Dict) -> float:
         # Dark pool sentiment (40% weight)
         dark_pool_score = dark_pool['composite_signal'] * 0.4
         
         # Market regime (30% weight)
         regime_score = 0.0
-        if regime.trend == 'bullish':
-            regime_score = regime.strength
-        elif regime.trend == 'bearish':
-            regime_score = -regime.strength
+        if regime.regime == 'trending':
+            regime_score = regime.trend_strength
+        else:
+            regime_score = 0.0
         regime_score *= 0.3
         
         # Volume analysis (30% weight)
@@ -74,7 +78,7 @@ class SignalGenerator:
         composite = dark_pool_score + regime_score + volume_score
         
         # Adjust based on volatility regime
-        if regime.volatility == 'high':
+        if regime.volatility_regime == 'high':
             composite *= 0.8  # Reduce signal strength in high volatility
         
         return float(np.clip(composite, -1, 1))
