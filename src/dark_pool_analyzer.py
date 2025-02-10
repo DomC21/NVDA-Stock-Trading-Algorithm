@@ -176,10 +176,12 @@ class DarkPoolAnalyzer:
             analysis['option_flow_signals'].get('signal', 0) * 0.4,
             analysis['greek_exposure'].get('signal', 0) * 0.2
         ]
-        analysis = dict(analysis)  # Create a new mutable dict
-        analysis['composite_signal'] = float(sum(signals))
         
-        return analysis
+        # Add composite signal to analysis dict
+        analysis_dict = dict(analysis)
+        analysis_dict['composite_signal'] = float(sum(signals))
+        
+        return analysis_dict
         
     def _analyze_dark_pool_sentiment(self, data: Dict) -> Dict:
         if not data:

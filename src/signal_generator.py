@@ -56,13 +56,17 @@ class SignalGenerator:
         news_items = self.sentiment_analyzer.fetch_news_sentiment('NVDA')
         sentiment_analysis = self.sentiment_analyzer.analyze_sentiment(news_items)
         
-        # Calculate composite signal
+        # Get Greeks exposure data for risk management
+        greeks_data = self.data_fetcher.fetch_greeks_exposure('NVDA')
+        
+        # Calculate composite signal with Greeks risk adjustment
         signal = self._calculate_composite_signal(
             dark_pool_analysis,
             regime,
             volume_signals,
             sentiment_analysis,
-            market_tide
+            market_tide,
+            greeks_data
         )
         
         return {
@@ -89,7 +93,8 @@ class SignalGenerator:
         }
         
     def _calculate_composite_signal(self, dark_pool: Dict, regime: MarketRegimeAnalysis, 
-                                  volume: Dict, sentiment: Dict, market_tide: Optional[Dict] = None) -> float:
+                                  volume: Dict, sentiment: Dict, market_tide: Optional[Dict] = None,
+                                  greeks: Optional[Dict] = None) -> float:
         # Dark pool sentiment (30% weight)
         dark_pool_score = dark_pool['composite_signal'] * 0.30
         
@@ -122,8 +127,25 @@ class SignalGenerator:
             market_context_score   # 10% Market context
         )
         
-        # Adjust based on volatility regime
+        # Adjust based on volatility regime and Greeks exposure
         if regime.volatility_regime == 'high':
             composite *= 0.8  # Reduce signal strength in high volatility
+            
+        if greeks:
+            delta = greeks.get('delta', 0)
+            gamma = greeks.get('gamma', 0)
+            theta = greeks.get('theta', 0)
+            
+            # Reduce signal strength if gamma exposure is high
+            if abs(gamma) > 0.1:
+                composite *= 0.85
+                
+            # Adjust signal based on delta exposure
+            if abs(delta) > 0.7:
+                composite *= 0.9
+                
+            # Consider theta decay impact
+            if theta < -0.001:  # Significant negative theta
+                composite *= 0.95
         
         return float(np.clip(composite, -1, 1))
