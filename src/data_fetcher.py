@@ -45,7 +45,11 @@ class DataFetcher:
 
     def get_alpha_vantage_data(self):
         data, _ = self.alpha_vantage.get_daily(symbol=SYMBOL, outputsize='full')
-        return data.head(730)
+        df = pd.DataFrame.from_dict(data['Time Series (Daily)'], orient='index')
+        df.index = pd.to_datetime(df.index)
+        df.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+        df = df.astype(float)
+        return df.head(730)
 
     def get_yfinance_data(self, start_date=None, end_date=None):
         try:

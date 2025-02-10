@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 def test_unusual_whales_api():
     try:
         # Try the alerts endpoint which is commonly available
-        url = "https://unusualwhales.com/api/alerts"
+        url = "https://api.unusualwhales.com/api/options/flow"
         headers = {
             "Accept": "application/json",
             "Authorization": UNUSUAL_WHALES_API_KEY
@@ -35,7 +35,7 @@ def test_unusual_whales_api():
             print(f"Request Params: {params}")
             
             # Try alternative endpoint
-            alt_url = "https://unusualwhales.com/api/v2/options/flow"
+            alt_url = "https://api.unusualwhales.com/api/historical/options"
             alt_response = requests.get(alt_url, headers=headers, params=params)
             print(f"\nAlternative endpoint status: {alt_response.status_code}")
             if alt_response.status_code != 200:
